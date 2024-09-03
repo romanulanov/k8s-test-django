@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-deployment
+  labels:
+    app: django
+spec:
+  selector:
+    matchLabels:
+      project: django
+  template:
+    metadata:
+      labels:
+        project: django
+    spec:
+      containers:
+      - name: django-back
+        image: django_app:latest
+        imagePullPolicy: Never
+        env:
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: secret_key
+        - name: DEBUG
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: debug
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: database_url
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: db_user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: db_password
+        - name: ALLOWED_HOSTS
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: allowed_hosts
+        ports:
+        - containerPort: 80
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-service
+spec:
+  selector:
+    project: django
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: NodePort
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: django-ingress
+spec:
+
+  rules:
+  - host: star-burger.test  # Укажите свой домен или используйте minikube IP.
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: django-service
+            port:
+              number: 80
