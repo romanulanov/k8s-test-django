@@ -141,6 +141,7 @@ minikube start
 ```bash
 kubectl apply -f secret.yaml
 kubectl apply -f django-deployment.yml
+kubectl apply -f django-service.yml
 kubectl apply -f django-ingress.yml
 kubectl apply -f django-migrate.yaml
 ```
