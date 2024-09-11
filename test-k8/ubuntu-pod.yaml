@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: psql-test
+  namespace: edu-reverent-mestorf
+spec:
+  containers:
+  - name: ubuntu
+    image: turnsourcream823/my-postgres-container
+    command: ["/bin/bash", "-c", "sleep infinity"]
+    volumeMounts:
+    - name: postgres-cert
+      mountPath: /etc/ssl/certs
+  volumes:
+  - name: postgres-cert
+    secret:
+      secretName: postgres-cert
