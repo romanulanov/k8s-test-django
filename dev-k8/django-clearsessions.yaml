@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: django-clearsessions-cron
+spec:
+  schedule: "0 0 * * *"  
+  startingDeadlineSeconds: 30 
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 600  
+      template:
+        metadata:
+          labels:
+            app: django
+        spec:
+          containers:
+          - name: clearsessions
+            image: django_app:latest
+            imagePullPolicy: Never
+            command: ["python", "manage.py", "clearsessions"]
+            env:
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: username
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: url
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: password
+        - name: ALLOWED_HOSTS
+          value: "*"
+        volumeMounts:
+        - name: postgres-cert
+          mountPath: /etc/ssl/certs/
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: postgres-cert
+        secret:
+          secretName: postgres-cert
