@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: psql-client
+  namespace: edu-reverent-mestorf
+spec:
+  containers:
+  - name: psql-client
+    image: postgres:alpine
+    command: ["/bin/sh", "-c", "sleep infinity"]
+    env:
+    - name: DB_HOST
+      valueFrom:
+        secretKeyRef:
+          name: postgres
+          key: host
+    - name: DB_PORT
+      valueFrom:
+        secretKeyRef:
+          name: postgres
+          key: port
+    - name: DB_NAME
+      valueFrom:
+        secretKeyRef:
+          name: postgres
+          key: name
+    - name: DB_USER
+      valueFrom:
+        secretKeyRef:
+          name: postgres
+          key: username
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: postgres
+          key: password
+    volumeMounts:
+    - name: postgres-cert
+      mountPath: /etc/ssl/certs/
+  volumes:
+  - name: postgres-cert
+    secret:
+      secretName: postgres-cert

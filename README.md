@@ -157,3 +157,12 @@ kubectl apply -f django-clearsessions.yaml
 ```bash
 minikube service django-service
 ```
+
+
+### Как подготовить dev окружение
+
+Для работы в кластере с PostgreSQL для начала нужно получить ssl-сертификат. [Инструкции по подключению к базе данных Managed PostgreSQL Яндекс Облака (Раздел “Получение SSL-сертификата”).](https://yandex.cloud/ru/docs/managed-postgresql/operations/connect) После этого создадим секрет сертификата в кластере с помощью команды:
+
+```bash
+kubectl create secret generic postgres-cert  --from-file=ssl-cert=RootCA.pem  --namespace=<namespace>
+```
