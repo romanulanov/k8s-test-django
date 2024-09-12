@@ -161,8 +161,88 @@ minikube service django-service
 
 ### Как подготовить dev окружение
 
+В качестве UI для терминала можно использовать [k9s](https://k9scli.io/), в качестве UI для k8s [Lens Desktop](https://k8slens.dev/)
+Для запуска сервиса в yandex cloud необходимо:
+1. Подключиться к кластеру Yandex cloud
+   1. [Установите и инициализируйте интерфейс командной строки Yandex Cloud](https://yandex.cloud/ru/docs/cli/quickstart#install)
+   2. [Добавьте учетные данные](https://yandex.cloud/ru/docs/managed-kubernetes/operations/connect#kubectl-connect) кластера Kubernetes в конфигурационный файл kubectl:
+     ```
+     yc managed-kubernetes cluster get-credentials --id catvr0kq2b7bn0v8k2r9 --external
+     ```
+2. Используйте утилиту kubectl для работы с кластером Kubernetes:
+    ```
+      kubectl get cluster-info
+      kubectl get pods --namespace=<your-namespace>
+    ```
+
+### Описание кластера
+ - Выделен домен edu-reverent-mestorf.sirius-k8s.dvmn.org. Запросы обрабатывает Yandex Application Load Balancer.
+ - В кластере K8s создан отдельный namespace edu-reverent-mestorf.
+ - В Yandex Managed Service for PostgreSQL создана база данных edu-reverent-mestorf. Доступы лежат в секрете K8s
+ - В Yandex Application Load Balancer создан роутер edu-reverent-mestorf. Он распределяет входящие сетевые запросы на разные NodePort кластера K8s.
+ -  Настроен редирект HTTP → HTTPS.
+    Схема роутинга: https://edu-reverent-mestorf.sirius-k8s.dvmn.org/ → NodePort 30291
+
+### Получение SSL-сертификата для подключения к базе данных PostgreSQL
 Для работы в кластере с PostgreSQL для начала нужно получить ssl-сертификат. [Инструкции по подключению к базе данных Managed PostgreSQL Яндекс Облака (Раздел “Получение SSL-сертификата”).](https://yandex.cloud/ru/docs/managed-postgresql/operations/connect) После этого создадим секрет сертификата в кластере с помощью команды:
 
 ```bash
 kubectl create secret generic postgres-cert  --from-file=ssl-cert=RootCA.pem  --namespace=<namespace>
 ```
+
+### Образ в docker registry
+Необходимо разместить образ приложения в [dockerhub](https://hub.docker.com):
+* Соберите образ:
+```shell
+docker build -t image_name:tag_name -f path/to/dockerfile .
+```
+* Тегируйте образ:
+```shell
+docker tag image_name:tag_name repo_name/image_name:tag_name
+```
+* Загрузите образ в Docker Hub:
+```shell
+docker push repo_name/image_name:tag_name
+```
+По умолчанию, во всех скриптах используется `latest` версия. Тэг можно поменять на необходимый.
+
+## Запуск проекта в Yandex Cloud
+1. После подготовки окружения, необходимо создать Secret с переменными окружения Django:
+    Формат YAML-файла:
+    ```yaml
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: django-secret
+    type: Opaque
+    data:
+      ALLOWED_HOSTS: <your-base64-encoded-hosts>
+      DATABASE_URL: <your-base64-encoded-db_url>
+      SECRET_KEY: <your-base64-encoded-secret_key>
+      DEBUG: <your-base64-encoded-debug>
+    ```
+
+Применим этот секрет в кластере:
+```
+    kubectl apply -f .\secrets.yaml --namespace=edu-reverent-mestorf
+```
+2. Затем создаем Deployment и Service из нашего образа с Docker Hub:
+    ```
+    kubectl create --namespace=edu-reverent-mestorf -f dev-k8/django_deployment.yaml
+    kubectl create --namespace=edu-reverent-mestorf -f dev-k8/django_service.yaml
+    ```
+  Теперь Django-проект доступен по адресу хоста вашего ALB, в моем случае https://edu-reverent-mestorf.sirius-k8s.dvmn.org/
+3. Применим миграции и настроим автоудаление сессий:
+    ```
+    kubectl apply -f  --namespace=edu-reverent-mestorf dev-k8/django_migrate.yaml
+    kubectl apply -f  --namespace=edu-reverent-mestorf dev-k8/django_clearsessions.yaml
+    ```
+4. Для проверки работоспособности сайта и БД, зайдите в Pod с помощью `kubectl` и создайте суперпользователя:
+    ```
+   python manage.py createsuperuser
+   ```
+   Также можете отсматривать ошибки в логах пода:
+   ```
+   kubectl logs <django-pod> -n <namespace> 
+   ```
+   

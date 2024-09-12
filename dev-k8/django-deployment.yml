@@ -12,43 +12,40 @@ spec:
     metadata:
       labels:
         project: django
+        namespace: edu-reverent-mestorf
     spec:
       containers:
       - name: django-back
-        image: django_app:latest
-        imagePullPolicy: Never
+        image: turnsourcream823/django_app:latest
         env:
         - name: SECRET_KEY
           valueFrom:
             secretKeyRef:
-              name: db-secret
-              key: secret_key
-        - name: DEBUG
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: debug
+              name: postgres
+              key: username
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: db-secret
-              key: database_url
+              name: postgres
+              key: url
         - name: DB_USER
           valueFrom:
             secretKeyRef:
-              name: db-secret
-              key: db_user
+              name: postgres
+              key: username
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: db-secret
-              key: db_password
+              name: postgres
+              key: password
         - name: ALLOWED_HOSTS
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: allowed_hosts
+          value: "*"
+        volumeMounts:
+        - name: postgres-cert
+          mountPath: /etc/ssl/certs/
         ports:
         - containerPort: 80
-
-
+      volumes:
+      - name: postgres-cert
+        secret:
+          secretName: postgres-cert
