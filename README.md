@@ -207,7 +207,7 @@ docker push repo_name/image_name:tag_name
 По умолчанию, во всех скриптах используется `latest` версия. Тэг можно поменять на необходимый.
 
 ## Запуск проекта в Yandex Cloud
-1. После подготовки окружения, необходимо создать Secret с переменными окружения Django:
+1. После подготовки окружения, необходимо создать Secret с переменными окружения Django (данные о БД кластера можно взять из секрета K8s):
     Формат YAML-файла:
     ```yaml
     apiVersion: v1
@@ -220,6 +220,8 @@ docker push repo_name/image_name:tag_name
       DATABASE_URL: <your-base64-encoded-db_url>
       SECRET_KEY: <your-base64-encoded-secret_key>
       DEBUG: <your-base64-encoded-debug>
+      DB_USER: <your-base64-encoded-db_user>
+      DB_PASSWORD: <your-base64-encoded-db_password>
     ```
 
 Применим этот секрет в кластере:

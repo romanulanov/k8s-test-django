@@ -18,35 +18,15 @@ spec:
             image: django_app:latest
             imagePullPolicy: Never
             command: ["python", "manage.py", "clearsessions"]
-            env:
-        - name: SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: postgres
-              key: username
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: postgres
-              key: url
-        - name: DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: postgres
-              key: username
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres
-              key: password
-        - name: ALLOWED_HOSTS
-          value: "*"
-        volumeMounts:
-        - name: postgres-cert
-          mountPath: /etc/ssl/certs/
-        ports:
-        - containerPort: 80
-      volumes:
-      - name: postgres-cert
-        secret:
-          secretName: postgres-cert
+            envFrom:
+            - secretRef:
+                name: django-secret  
+            volumeMounts:
+            - name: postgres-cert
+              mountPath: /etc/ssl/certs/
+            ports:
+            - containerPort: 80
+          volumes:
+          - name: postgres-cert
+            secret:
+              secretName: postgres-cert
